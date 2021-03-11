@@ -5,6 +5,9 @@ using System.Linq;
  using ShipIt.Exceptions;
 using ShipIt.Models.ApiModels;
 using ShipIt.Repositories;
+using ShipIt.Parsers;
+
+
 
 namespace ShipIt.Controllers
 {
@@ -23,7 +26,7 @@ namespace ShipIt.Controllers
         }
 
         [HttpPost("")]
-        public void Post([FromBody] OutboundOrderRequestModel request)
+        public TruckModel Post([FromBody] OutboundOrderRequestModel request)
         {
             Log.Info(String.Format("Processing outbound order: {0}", request));
 
@@ -94,6 +97,21 @@ namespace ShipIt.Controllers
             }
 
             _stockRepository.RemoveStock(request.WarehouseId, lineItems);
+
+            // for each product id in lineItems, get data from gtin table. find the m_g. multuply by min_qt.
+            // gives you the weight in gms. divide by 2000 to get trucks
+
+            double totalWeight = 0;
+
+            foreach (var line in lineItems)
+            {
+                var newproduct = _productRepository.GetProductById(line.ProductId);  
+                totalWeight = totalWeight + newproduct.Weight;
+            }
+            var Trucks = new TruckModel(0);
+            Trucks.Trucks_Needed = Math.Ceiling(totalWeight/(1000*2000));
+            return new TruckModel(Trucks.Trucks_Needed);
+    
         }
     }
 }
