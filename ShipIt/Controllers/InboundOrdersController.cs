@@ -30,37 +30,66 @@ namespace ShipIt.Controllers
         [HttpGet("{warehouseId}")]
         public InboundOrderResponse Get([FromRoute] int warehouseId)
         {
-            Log.Info("orderIn for warehouseId: " + warehouseId);
+            var watch = new System.Diagnostics.Stopwatch();
+            watch.Start();
 
+            Log.Info("orderIn for warehouseId: " + warehouseId);
+            // find out the operations manager for the warehouse
             var operationsManager = new Employee(_employeeRepository.GetOperationsManager(warehouseId));
 
             Log.Debug(String.Format("Found operations manager: {0}", operationsManager));
+            // allStock is every line of stock table for the warehouse
 
-            var allStock = _stockRepository.GetStockByWarehouseId(warehouseId);
+            // select stock  and join with product where stock.pr_id=product.pr_id
+            // where where warehouse is "", stock.held < productCompany.LowerThreshold && productCompany.Discontinued!=0
 
-            Dictionary<Company, List<InboundOrderLine>> orderlinesByCompany = new Dictionary<Company, List<InboundOrderLine>>();
-            foreach (var stock in allStock)
-            {
-                Product product = new Product(_productRepository.GetProductById(stock.ProductId));
-                if(stock.held < product.LowerThreshold && !product.Discontinued)
+            var stockProduct = _stockRepository.GetStockProductByWarehouseId(warehouseId);
+            //make a list of unique gcp from stockProduct
+            List<String> companyGcps = new List<String>();
+            foreach( var sp in stockProduct){
+                if(!companyGcps.Contains(sp.Gcp))
                 {
-                    Company company = new Company(_companyRepository.GetCompany(product.Gcp));
-
-                    var orderQuantity = Math.Max(product.LowerThreshold * 3 - stock.held, product.MinimumOrderQuantity);
-
+                    companyGcps.Add(sp.Gcp);
+                }
+            }
+            List<Company> companyList = new List<Company>();
+            foreach(var comGcp in companyGcps)
+            {
+                Company companyP = new Company(_companyRepository.GetCompany(comGcp));
+                companyList.Add(companyP);
+            }
+ 
+            Dictionary<Company, List<InboundOrderLine>> orderlinesByCompany = new Dictionary<Company, List<InboundOrderLine>>();
+            foreach (var stockPr in stockProduct)
+            {
+                //go thru the stock list
+                // find product details from gtin table using product id
+                ////    Company company = new Company(_companyRepository.GetCompany(stockPr.Gcp));
+                Company company = companyList.Find(x=>x.Gcp == stockPr.Gcp);
+                //select company details from my list and store it in company where gcp = stoctPr.gcp
+                // ProductCompanyDataModel productCompany = new ProductCompanyDataModel(_productRepository.GetProductCompanyById(stock.ProductId));
+                // compare the stock held in stock table with the threshold in product table. if stock is low,
+                // we need to add it to the the order list
+               // if(stockPr.held < productCompany.LowerThreshold && productCompany.Discontinued!=0)
+                // {
+                    // find company details of the product from the gcp table
+                  //  // Company company = new Company(productCompany);
+                    // determine order quantity
+                    var orderQuantity = Math.Max(stockPr.LowerThreshold * 3 - stockPr.held, stockPr.MinimumOrderQuantity);
+                    // if company not present, add company.
                     if (!orderlinesByCompany.ContainsKey(company))
                     {
                         orderlinesByCompany.Add(company, new List<InboundOrderLine>());
                     }
-
+                    // add order details to the list
                     orderlinesByCompany[company].Add( 
                         new InboundOrderLine()
                         {
-                            gtin = product.Gtin,
-                            name = product.Name,
+                            gtin = stockPr.Gtin,
+                            name = company.Name,
                             quantity = orderQuantity
                         });
-                }
+                // }
             }
 
             Log.Debug(String.Format("Constructed order lines: {0}", orderlinesByCompany));
@@ -72,6 +101,9 @@ namespace ShipIt.Controllers
             });
 
             Log.Info("Constructed inbound order");
+            watch.Stop();
+            Console.WriteLine($"Execution Time: {watch.ElapsedMilliseconds} ms");
+
 
             return new InboundOrderResponse()
             {
@@ -79,6 +111,7 @@ namespace ShipIt.Controllers
                 WarehouseId = warehouseId,
                 OrderSegments = orderSegments
             };
+            
         }
 
         [HttpPost("")]

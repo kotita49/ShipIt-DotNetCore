@@ -1,7 +1,6 @@
-﻿﻿using ShipIt.Models.DataModels;
+﻿﻿﻿using ShipIt.Models.DataModels;
 using System;
 using System.Text;
-
 namespace ShipIt.Models.ApiModels
 {
     public class Company
@@ -15,11 +14,22 @@ namespace ShipIt.Models.ApiModels
         public string City { get; set; }
         public string Tel { get; set; }
         public string Mail { get; set; }
-
         public Company(CompanyDataModel dataModel)
         {
             Gcp = dataModel.Gcp;
             Name = dataModel.Name;
+            Addr2 = dataModel.Addr2;
+            Addr3 = dataModel.Addr3;
+            Addr4 = dataModel.Addr4;
+            PostalCode = dataModel.PostalCode;
+            City = dataModel.City;
+            Tel = dataModel.Tel;
+            Mail = dataModel.Mail;
+        }
+        public Company(ProductCompanyDataModel dataModel)
+        {
+            Gcp = dataModel.Gcp;
+            Name = dataModel.CompanyName;
             Addr2 = dataModel.Addr2;
             Addr3 = dataModel.Addr3;
             Addr4 = dataModel.Addr4;
@@ -33,21 +43,17 @@ namespace ShipIt.Models.ApiModels
         public Company()
         {
         }
-
         public override bool Equals(object obj)
         {
             if (this == obj)
             {
                 return true;
             }
-
             if (!(obj is Company))
             {
                 return false;
             }
-
             Company company = (Company)obj;
-
             return Gcp == company.Gcp
                    && Name == company.Name
                    && Addr2 == company.Addr2
@@ -58,7 +64,6 @@ namespace ShipIt.Models.ApiModels
                    && Tel == company.Tel
                    && Mail == company.Mail;
         }
-
         public override int GetHashCode()
         {
             unchecked
@@ -75,7 +80,6 @@ namespace ShipIt.Models.ApiModels
                 return hashCode;
             }
         }
-
         public override String ToString()
         {
             return new StringBuilder()
