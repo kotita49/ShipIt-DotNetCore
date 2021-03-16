@@ -1,4 +1,4 @@
-﻿﻿using System;
+﻿﻿﻿using System;
 using System.Collections.Generic;
 using System.Configuration;
 using System.Data;
@@ -7,7 +7,6 @@ using Npgsql;
 using ShipIt.Exceptions;
 using ShipIt.Models.ApiModels;
 using ShipIt.Models.DataModels;
-
 namespace ShipIt.Repositories
 {
     public interface IEmployeeRepository
@@ -15,10 +14,11 @@ namespace ShipIt.Repositories
         int GetCount();
         int GetWarehouseCount();
         EmployeeDataModel GetEmployeeByName(string name);
+        EmployeeDataModel GetEmployeeById(int employee_id);
         IEnumerable<EmployeeDataModel> GetEmployeesByWarehouseId(int warehouseId);
         EmployeeDataModel GetOperationsManager(int warehouseId);
         void AddEmployees(IEnumerable<Employee> employees);
-        void RemoveEmployee(string name);
+        void RemoveEmployee(int Id);
     }
 
     public class EmployeeRepository : RepositoryBase, IEmployeeRepository
@@ -27,10 +27,8 @@ namespace ShipIt.Repositories
         {
             return new NpgsqlConnection(ConnectionHelper.GetConnectionString());
         }
-
         public int GetCount()
         {
-
             using (IDbConnection connection = CreateSqlConnection())
             {
                 var command = connection.CreateCommand();
@@ -38,7 +36,6 @@ namespace ShipIt.Repositories
                 command.CommandText = EmployeeCountSQL;
                 connection.Open();
                 var reader = command.ExecuteReader();
-
                 try
                 {
                     reader.Read();
@@ -50,7 +47,6 @@ namespace ShipIt.Repositories
                 }
             };
         }
-
         public int GetWarehouseCount()
         {
             using (IDbConnection connection = CreateSqlConnection())
@@ -60,7 +56,6 @@ namespace ShipIt.Repositories
                 command.CommandText = EmployeeCountSQL;
                 connection.Open();
                 var reader = command.ExecuteReader();
-
                 try
                 {
                     reader.Read();
@@ -75,37 +70,41 @@ namespace ShipIt.Repositories
 
         public EmployeeDataModel GetEmployeeByName(string name)
         {
-            string sql = "SELECT name, w_id, role, ext FROM em WHERE name = @name";
+            string sql = "SELECT name, w_id, role, ext, employee_id FROM em WHERE name = @name";
             var parameter = new NpgsqlParameter("@name", name);
             string noProductWithIdErrorMessage = string.Format("No employees found with name: {0}", name);
+            return base.RunSingleGetQuery(sql, reader => new EmployeeDataModel(reader),noProductWithIdErrorMessage, parameter);
+        }
+
+        public EmployeeDataModel GetEmployeeById(int employee_id)
+        {
+            string sql = "SELECT name, w_id, role, ext, employee_id FROM em WHERE employee_id = @employee_id";
+            var parameter = new NpgsqlParameter("@employee_id", employee_id);
+            string noProductWithIdErrorMessage = string.Format("No employees found with id: {0}", employee_id);
             return base.RunSingleGetQuery(sql, reader => new EmployeeDataModel(reader),noProductWithIdErrorMessage, parameter);
         }
 
         public IEnumerable<EmployeeDataModel> GetEmployeesByWarehouseId(int warehouseId)
         {
 
-            string sql = "SELECT name, w_id, role, ext FROM em WHERE w_id = @w_id";
+            string sql = "SELECT name, w_id, role, ext, employee_id FROM em WHERE w_id = @w_id";
             var parameter = new NpgsqlParameter("@w_id", warehouseId);
             string noProductWithIdErrorMessage =
                 string.Format("No employees found with Warehouse Id: {0}", warehouseId);
             return base.RunGetQuery(sql, reader => new EmployeeDataModel(reader), noProductWithIdErrorMessage, parameter);
         }
-
         public EmployeeDataModel GetOperationsManager(int warehouseId)
         {
-
             string sql = "SELECT name, w_id, role, ext FROM em WHERE w_id = @w_id AND role = @role";
             var parameters = new []
             {
                 new NpgsqlParameter("@w_id", warehouseId),
                 new NpgsqlParameter("@role", DataBaseRoles.OperationsManager)
             };
-
             string noProductWithIdErrorMessage =
                 string.Format("No employees found with Warehouse Id: {0}", warehouseId);
             return base.RunSingleGetQuery(sql, reader => new EmployeeDataModel(reader), noProductWithIdErrorMessage, parameters);
         }
-
         public void AddEmployees(IEnumerable<Employee> employees)
         {
             string sql = "INSERT INTO em (name, w_id, role, ext) VALUES(@name, @w_id, @role, @ext)";
@@ -116,14 +115,13 @@ namespace ShipIt.Repositories
                 var employeeDataModel = new EmployeeDataModel(employee);
                 parametersList.Add(employeeDataModel.GetNpgsqlParameters().ToArray());
             }
-
             base.RunTransaction(sql, parametersList);
         }
 
-        public void RemoveEmployee(string name)
+        public void RemoveEmployee(int Id)
         {
-            string sql = "DELETE FROM em WHERE name = @name";
-            var parameter = new NpgsqlParameter("@name", name);
+            string sql = "DELETE FROM em WHERE employee_id = @Id";
+            var parameter = new NpgsqlParameter("@Id", Id);
             var rowsDeleted = RunSingleQueryAndReturnRecordsAffected(sql, parameter);
             if (rowsDeleted == 0)
             {

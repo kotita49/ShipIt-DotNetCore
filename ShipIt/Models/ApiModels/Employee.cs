@@ -4,7 +4,6 @@ using System.Linq;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using ShipIt.Models.DataModels;
-
 namespace ShipIt.Models.ApiModels
 {
     public class Employee
@@ -13,6 +12,7 @@ namespace ShipIt.Models.ApiModels
         public int WarehouseId { get; set; }
         public EmployeeRole role { get; set; }
         public string ext { get; set; }
+        public int EmployeeId { get; set; }
 
         public Employee(EmployeeDataModel dataModel)
         {
@@ -20,6 +20,7 @@ namespace ShipIt.Models.ApiModels
             WarehouseId = dataModel.WarehouseId;
             role = MapDatabaseRoleToApiRole(dataModel.Role);
             ext = dataModel.Ext;
+            EmployeeId = dataModel.EmployeeId;
         }
 
         private EmployeeRole MapDatabaseRoleToApiRole(string databaseRole)
@@ -30,12 +31,10 @@ namespace ShipIt.Models.ApiModels
             if (databaseRole == DataBaseRoles.Picker) return EmployeeRole.PICKER;
             throw new ArgumentOutOfRangeException("DatabaseRole");
         }
-
         //Empty constructor needed for Xml serialization
         public Employee()
         {
         }
-
         public override String ToString()
         {
             return new StringBuilder()

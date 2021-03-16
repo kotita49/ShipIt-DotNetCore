@@ -1,7 +1,6 @@
-﻿﻿using System;
+﻿﻿﻿using System;
 using System.Data;
 using ShipIt.Models.ApiModels;
-
 namespace ShipIt.Models.DataModels
 {
     public class EmployeeDataModel : DataModel
@@ -14,19 +13,20 @@ namespace ShipIt.Models.DataModels
         public string Role { get; set; }
         [DatabaseColumnName("ext")]
         public string Ext { get; set; }
-
+        [DatabaseColumnName("employee_id")]
+        public int EmployeeId { get; set; }
         public EmployeeDataModel(IDataReader dataReader) : base(dataReader)
         { }
 
         public EmployeeDataModel()
         { }
-
         public EmployeeDataModel(Employee employee)
         {
             this.Name = employee.Name;
             this.WarehouseId = employee.WarehouseId;
             this.Role = MapApiRoleToDatabaseRole(employee.role);
             this.Ext = employee.ext;
+            this.EmployeeId = employee.EmployeeId;
         }
 
         private string MapApiRoleToDatabaseRole(EmployeeRole employeeRole)
